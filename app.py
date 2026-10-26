@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom Styling to match prototype design
+# Custom Styling matching prototype
 st.markdown("""
 <style>
     .stApp {
@@ -80,9 +80,15 @@ st.markdown("""
 
 CSV_FILE = "Compliance_SOP_Tracker.csv"
 
+def safe_rerun():
+    if hasattr(st, "rerun"):
+        st.rerun()
+    elif hasattr(st, "experimental_rerun"):
+        st.experimental_rerun()
+
 def load_data():
     if os.path.exists(CSV_FILE):
-        return pd.read_csv(CSV_FILE)
+        return pd.read_csv(CSV_FILE, quotechar='"', skipinitialspace=True)
     return pd.DataFrame(columns=[
         "SOP_NAME", "SOP_UPDATE_NAME", "JIRA_TICKET_LINK",
         "UPDATE_OWNER", "APPROVER", "UPDATE_STATUS", "TIMELINE"
@@ -173,7 +179,7 @@ with ctrl_col3:
 
 with ctrl_col4:
     if st.button("Clear filters", use_container_width=True):
-        st.experimental_rerun()
+        safe_rerun()
 
 with ctrl_col5:
     show_add_modal = st.button("+ Add SOP update", type="primary", use_container_width=True)
@@ -225,7 +231,7 @@ if show_add_modal:
             st.session_state.tracker_data = updated_df
             updated_df.to_csv(CSV_FILE, index=False)
             st.success("Added new update successfully!")
-            st.experimental_rerun()
+            safe_rerun()
 
 st.caption(f"**{len(filtered_df)} of {len(df_all)} updates**")
 
@@ -286,7 +292,8 @@ save_c1, save_c2, _ = st.columns([2, 2, 6])
 
 with save_c1:
     if st.button("💾 Publish Changes", type="primary", use_container_width=True):
-        st.session_state.tracker_data.update(edited_df)
+        for col in edited_df.columns:
+            st.session_state.tracker_data.loc[edited_df.index, col] = edited_df[col]
         st.session_state.tracker_data.to_csv(CSV_FILE, index=False)
         st.success("✅ Changes published to SOP tracker!")
 
