@@ -2,14 +2,79 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import re
-import plotly.express as px
 
 st.set_page_config(
-    page_title="Compliance SOP Updates | Checkout.com",
+    page_title="Compliance SOP Governance | Checkout.com",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Custom CSS for crisp, enterprise styling
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #0E1117;
+    }
+    .sop-card {
+        background-color: #1A1F2C;
+        border: 1px solid #2B3245;
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .sop-card:hover {
+        border-color: #4A5568;
+        transform: translateY(-2px);
+    }
+    .card-btn {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 5px;
+        text-decoration: none;
+        margin-right: 6px;
+        margin-top: 4px;
+    }
+    .btn-jira {
+        background-color: #20293A;
+        color: #90CAF9 !important;
+        border: 1px solid #2E3B52;
+    }
+    .btn-jira:hover {
+        background-color: #2B3850;
+    }
+    .btn-confluence {
+        background-color: #172D3D;
+        color: #80D8FF !important;
+        border: 1px solid #1E4663;
+    }
+    .btn-confluence:hover {
+        background-color: #21415B;
+    }
+    .btn-doc {
+        background-color: #1B332A;
+        color: #A7F3D0 !important;
+        border: 1px solid #245242;
+    }
+    .btn-doc:hover {
+        background-color: #244638;
+    }
+    .badge-unmapped {
+        display: inline-block;
+        background-color: #2E251E;
+        color: #FFB74D;
+        border: 1px dashed #B26A00;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 5px;
+        margin-top: 4px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 def clean_url(val):
     if not isinstance(val, str):
@@ -17,273 +82,249 @@ def clean_url(val):
     match = re.search(r'https?://[^\s)]+', val)
     return match.group(0) if match else None
 
+def parse_sop_link(val):
+    if not isinstance(val, str):
+        return {"type": "none", "label": "⚠️ Needs SOP Mapping", "url": None}
+    match = re.search(r'https?://[^\s)]+', val)
+    if not match:
+        return {"type": "none", "label": "⚠️ Needs SOP Mapping", "url": None}
+    url = match.group(0)
+    if "docs.google.com" in url:
+        return {"type": "doc", "label": "📄 Working Draft Doc ↗", "url": url}
+    elif "atlassian.net" in url:
+        return {"type": "confluence", "label": "📘 Confluence SOP ↗", "url": url}
+    else:
+        return {"type": "link", "label": "🔗 Reference Link ↗", "url": url}
+
 def categorize_status(s):
     s_lower = str(s).lower()
     if 'blocked' in s_lower or 'hold' in s_lower:
-        return 'Blocked / On Hold'
+        return 'Blocked'
     elif 'in progress' in s_lower:
         return 'In Progress'
     else:
         return 'Backlog'
 
-def categorize_team(s):
-    s_lower = str(s).lower()
-    if 'qc' in s_lower:
-        return 'Quality Control (QC)'
-    elif 'legal' in s_lower or 'cco' in s_lower:
-        return 'Legal & CCO'
-    elif 'audit' in s_lower or 'mlro' in s_lower:
-        return 'Internal Audit / MLRO'
-    elif 'leadership' in s_lower or 'mirabel' in s_lower:
-        return 'Compliance Leadership'
-    elif 'product' in s_lower or 'analytics' in s_lower:
-        return 'Product & Analytics'
-    elif 'ops' in s_lower or 'operations' in s_lower:
-        return 'Operations'
-    else:
-        return 'Direct Stakeholders'
-
 @st.cache_data(ttl=60)
 def load_data():
     df = pd.read_csv("Compliance_SOP_Change_Requests.csv")
-    df["Clean_Confluence_URL"] = df["Confluence_URL"].apply(clean_url)
     df["Clean_Jira_URL"] = df["Jira_Ticket"].apply(clean_url)
     df["Status_Group"] = df["Jira_Status"].apply(categorize_status)
-    df["Requesting_Team"] = df["Requesting_Stakeholder"].apply(categorize_team)
     return df
 
 df = load_data()
 
 # --- SIDEBAR ---
 st.sidebar.markdown("## 🛡️ Checkout.com")
-st.sidebar.caption("Process Architecture · Compliance")
-st.sidebar.divider()
+st.sidebar.caption("Process Architecture · Compliance Governance")
+st.sidebar.markdown("""
+<div style="background-color: #171B24; padding: 12px 14px; border-radius: 8px; border-left: 3px solid #3F51B5; margin-bottom: 14px;">
+    <div style="font-size: 11px; text-transform: uppercase; color: #8F9CAE; letter-spacing: 0.5px;">Executive Oversight</div>
+    <div style="font-size: 13px; font-weight: 600; color: #F0F4F8; margin-top: 2px;">Sunil Mudaliar</div>
+    <div style="font-size: 11px; color: #8F9CAE;">Senior Lead, Process Architecture</div>
+</div>
+<div style="background-color: #171B24; padding: 12px 14px; border-radius: 8px; border-left: 3px solid #00ACC1; margin-bottom: 18px;">
+    <div style="font-size: 11px; text-transform: uppercase; color: #8F9CAE; letter-spacing: 0.5px;">Domain Governance</div>
+    <div style="font-size: 13px; font-weight: 600; color: #F0F4F8; margin-top: 2px;">Bernard Ryan</div>
+    <div style="font-size: 11px; color: #8F9CAE;">Domain Lead, Compliance</div>
+    <div style="font-size: 13px; font-weight: 600; color: #F0F4F8; margin-top: 6px;">Allan Maxwell</div>
+    <div style="font-size: 11px; color: #8F9CAE;">Process Architect</div>
+</div>
+""", unsafe_allow_html=True)
 
-st.sidebar.markdown("**Senior Lead:** Sunil Mudaliar")
-st.sidebar.markdown("**Domain Lead:** Bernard Ryan")
-st.sidebar.divider()
+st.sidebar.info("💡 **Tip:** Use this board to run live triage with Bernard and Pooja's team. Red cards highlight external dependencies blocking delivery.")
 
-# Clean collapsible filters
-with st.sidebar.expander("🔍 Filter Options", expanded=False):
-    selected_owner = st.multiselect(
-        "Owner",
-        options=sorted(df["Compliance_Owner"].unique()),
-        default=sorted(df["Compliance_Owner"].unique())
-    )
-    selected_status = st.multiselect(
-        "Status Group",
-        options=["Blocked / On Hold", "In Progress", "Backlog"],
-        default=["Blocked / On Hold", "In Progress", "Backlog"]
-    )
-    selected_teams = st.multiselect(
-        "Requesting Team",
-        options=sorted(df["Requesting_Team"].unique()),
-        default=sorted(df["Requesting_Team"].unique())
-    )
+# --- TOP EXECUTIVE BAR ---
+st.title("Compliance SOP Governance Hub")
+st.caption("Active tracking for stakeholder-requested SOP updates, blockers, and documentation readiness.")
 
-# Filter logic
-filtered_df = df[
-    df["Compliance_Owner"].isin(selected_owner) &
-    df["Status_Group"].isin(selected_status) &
-    df["Requesting_Team"].isin(selected_teams)
-]
+# Key metrics
+total_cnt = len(df)
+blocked_cnt = len(df[df["Status_Group"] == "Blocked"])
+inprog_cnt = len(df[df["Status_Group"] == "In Progress"])
+backlog_cnt = len(df[df["Status_Group"] == "Backlog"])
 
-# --- MAIN HEADER ---
-st.title("Compliance SOP Change Requests")
-st.caption("Active tracking for stakeholder update requests, blockers, and documentation status.")
-
-# Top Metric Cards
-total_count = len(filtered_df)
-blocked_count = len(filtered_df[filtered_df["Status_Group"] == "Blocked / On Hold"])
-in_progress_count = len(filtered_df[filtered_df["Status_Group"] == "In Progress"])
-backlog_count = len(filtered_df[filtered_df["Status_Group"] == "Backlog"])
-
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total Requests", total_count)
-m2.metric("In Progress", in_progress_count)
-m3.metric("Blocked / On Hold", blocked_count, delta=f"{blocked_count} Blocked" if blocked_count > 0 else None, delta_color="inverse")
-m4.metric("Backlog", backlog_count)
+col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+col_m1.metric("Total Requests", total_cnt)
+col_m2.metric("Blocked / On Hold", blocked_cnt, delta=f"{blocked_cnt} Blocked" if blocked_cnt > 0 else "None", delta_color="inverse")
+col_m3.metric("In Progress", inprog_cnt, delta="Active Delivery" if inprog_cnt > 0 else None)
+col_m4.metric("Backlog", backlog_cnt)
 
 st.divider()
 
-# --- TABS ---
-tab1, tab2, tab3 = st.tabs(["📋 All Requests", "📊 Summary Charts", "📑 Table View"])
+# --- TOP CONTROLS: QUICK FILTER BUTTONS & INSTANT SEARCH ---
+ctrl_c1, ctrl_c2 = st.columns([3, 2])
 
-# --- TAB 1: ALL REQUESTS ---
-with tab1:
-    search_query = st.text_input("🔍 Quick search by keyword, ticket ID, or owner:", "").strip().lower()
-    
-    display_df = filtered_df.copy()
-    if search_query:
-        display_df = display_df[
-            display_df["SOP_Title"].str.lower().str.contains(search_query, na=False) |
-            display_df["SOP_ID"].str.lower().str.contains(search_query, na=False) |
-            display_df["Compliance_Owner"].str.lower().str.contains(search_query, na=False) |
-            display_df["Requesting_Stakeholder"].str.lower().str.contains(search_query, na=False) |
-            display_df["Jira_Summary"].str.lower().str.contains(search_query, na=False)
-        ]
-
-    st.caption(f"Showing **{len(display_df)}** of {len(df)} change requests")
-    
-    # 1. Blocked section (open by default)
-    blocked_items = display_df[display_df["Status_Group"] == "Blocked / On Hold"]
-    if len(blocked_items) > 0:
-        st.markdown(f"### 🔴 Blocked / On Hold ({len(blocked_items)})")
-        for _, item in blocked_items.iterrows():
-            with st.expander(f"**[{item['SOP_ID']}]** {item['SOP_Title']} — *{item['Compliance_Owner']}*", expanded=True):
-                c_left, c_right = st.columns([3, 1])
-                with c_left:
-                    st.markdown(f"**What needs to change:** {item['Jira_Summary']}")
-                    st.error(f"**Blocker / Dependency:** {item['Key_Blockers_or_Notes']}")
-                with c_right:
-                    st.markdown(f"**Status:** `{item['Jira_Status']}`")
-                    st.markdown(f"**Requested by:** {item['Requesting_Stakeholder']}")
-                    if item["Clean_Jira_URL"]:
-                        st.markdown(f"🎫 [Open Jira Ticket ↗]({item['Clean_Jira_URL']})")
-                    if item["Clean_Confluence_URL"]:
-                        st.markdown(f"📄 [Open Document ↗]({item['Clean_Confluence_URL']})")
-
-    # 2. In Progress section
-    inprogress_items = display_df[display_df["Status_Group"] == "In Progress"]
-    if len(inprogress_items) > 0:
-        st.markdown(f"### 🔵 In Progress ({len(inprogress_items)})")
-        for _, item in inprogress_items.iterrows():
-            with st.expander(f"**[{item['SOP_ID']}]** {item['SOP_Title']} — *{item['Compliance_Owner']}*", expanded=False):
-                c_left, c_right = st.columns([3, 1])
-                with c_left:
-                    st.markdown(f"**What needs to change:** {item['Jira_Summary']}")
-                    st.info(f"**Next Steps:** {item['Key_Blockers_or_Notes']}")
-                with c_right:
-                    st.markdown(f"**Status:** `{item['Jira_Status']}`")
-                    st.markdown(f"**Requested by:** {item['Requesting_Stakeholder']}")
-                    if item["Clean_Jira_URL"]:
-                        st.markdown(f"🎫 [Open Jira Ticket ↗]({item['Clean_Jira_URL']})")
-                    if item["Clean_Confluence_URL"]:
-                        st.markdown(f"📄 [Open Document ↗]({item['Clean_Confluence_URL']})")
-
-    # 3. Backlog section
-    backlog_items = display_df[display_df["Status_Group"] == "Backlog"]
-    if len(backlog_items) > 0:
-        st.markdown(f"### ⚪ Backlog ({len(backlog_items)})")
-        for _, item in backlog_items.iterrows():
-            with st.expander(f"**[{item['SOP_ID']}]** {item['SOP_Title']} — *{item['Compliance_Owner']}*", expanded=False):
-                c_left, c_right = st.columns([3, 1])
-                with c_left:
-                    st.markdown(f"**What needs to change:** {item['Jira_Summary']}")
-                    st.markdown(f"**Notes:** {item['Key_Blockers_or_Notes']}")
-                with c_right:
-                    st.markdown(f"**Status:** `{item['Jira_Status']}`")
-                    st.markdown(f"**Requested by:** {item['Requesting_Stakeholder']}")
-                    if item["Clean_Jira_URL"]:
-                        st.markdown(f"🎫 [Open Jira Ticket ↗]({item['Clean_Jira_URL']})")
-                    if item["Clean_Confluence_URL"]:
-                        st.markdown(f"📄 [Open Document ↗]({item['Clean_Confluence_URL']})")
-
-# --- TAB 2: SUMMARY CHARTS (Whole Integers Only) ---
-with tab2:
-    ch1, ch2 = st.columns(2)
-    
-    with ch1:
-        st.markdown("#### Status Breakdown")
-        status_data = filtered_df["Status_Group"].value_counts().reset_index()
-        status_data.columns = ["Status", "Count"]
-        
-        fig_pie = px.pie(
-            status_data,
-            names="Status",
-            values="Count",
-            hole=0.55,
-            color="Status",
-            color_discrete_map={
-                "Blocked / On Hold": "#D32F2F",
-                "In Progress": "#1976D2",
-                "Backlog": "#757575"
-            }
-        )
-        fig_pie.update_layout(
-            margin=dict(t=20, b=20, l=20, r=20),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            font_color="#E0E0E0",
-            height=280
-        )
-        st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
-
-    with ch2:
-        st.markdown("#### Workload by Owner")
-        owner_data = filtered_df["Compliance_Owner"].value_counts().reset_index()
-        owner_data.columns = ["Owner", "Count"]
-        
-        fig_owner = px.bar(
-            owner_data,
-            x="Owner",
-            y="Count",
-            text="Count",
-            color="Owner",
-            color_discrete_sequence=["#1976D2", "#0097A7"]
-        )
-        fig_owner.update_layout(
-            margin=dict(t=20, b=20, l=20, r=20),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            font_color="#E0E0E0",
-            height=280,
-            showlegend=False,
-            xaxis_title="",
-            yaxis=dict(dtick=1, tick0=0, tickformat="d", title="Requests")
-        )
-        st.plotly_chart(fig_owner, use_container_width=True, config={"displayModeBar": False})
-
-    st.markdown("#### Requests by Originating Team")
-    team_data = filtered_df["Requesting_Team"].value_counts().reset_index()
-    team_data.columns = ["Team", "Count"]
-    
-    fig_team = px.bar(
-        team_data,
-        x="Count",
-        y="Team",
-        orientation="h",
-        text="Count",
-        color_discrete_sequence=["#1976D2"]
+with ctrl_c1:
+    filter_choice = st.radio(
+        "Filter by Queue:",
+        options=[
+            f"All ({total_cnt})",
+            f"🔴 Blocked ({blocked_cnt})",
+            "👤 Allan's Queue",
+            "👤 Bernard's Queue",
+            "🎯 Pooja / QC Team"
+        ],
+        horizontal=True,
+        label_visibility="collapsed"
     )
-    fig_team.update_layout(
-        margin=dict(t=10, b=10, l=10, r=20),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font_color="#E0E0E0",
-        height=260,
-        yaxis=dict(autorange="reversed", title=""),
-        xaxis=dict(dtick=1, tick0=0, tickformat="d", title="Requests")
-    )
-    st.plotly_chart(fig_team, use_container_width=True, config={"displayModeBar": False})
 
-# --- TAB 3: TABLE VIEW ---
-with tab3:
-    st.markdown("#### Master Log")
+with ctrl_c2:
+    search_text = st.text_input("🔍 Quick Search", placeholder="Filter by ticket ID, keyword, or stakeholder...", label_visibility="collapsed").strip().lower()
+
+# Apply Quick Filters
+filtered_df = df.copy()
+
+if "🔴 Blocked" in filter_choice:
+    filtered_df = filtered_df[filtered_df["Status_Group"] == "Blocked"]
+elif "Allan's" in filter_choice:
+    filtered_df = filtered_df[filtered_df["Compliance_Owner"].str.contains("Allan", case=False, na=False)]
+elif "Bernard's" in filter_choice:
+    filtered_df = filtered_df[filtered_df["Compliance_Owner"].str.contains("Bernard", case=False, na=False)]
+elif "Pooja" in filter_choice:
+    filtered_df = filtered_df[filtered_df["Requesting_Stakeholder"].str.contains("Pooja|QC", case=False, na=False)]
+
+# Apply Text Search
+if search_text:
+    filtered_df = filtered_df[
+        filtered_df["SOP_Title"].str.lower().str.contains(search_text, na=False) |
+        filtered_df["SOP_ID"].str.lower().str.contains(search_text, na=False) |
+        filtered_df["Compliance_Owner"].str.lower().str.contains(search_text, na=False) |
+        filtered_df["Requesting_Stakeholder"].str.lower().str.contains(search_text, na=False) |
+        filtered_df["Jira_Summary"].str.lower().str.contains(search_text, na=False) |
+        filtered_df["Key_Blockers_or_Notes"].str.lower().str.contains(search_text, na=False)
+    ]
+
+# --- TABS: 3-COLUMN BOARD & AUDIT TABLE ---
+tab_board, tab_table = st.tabs(["📌 3-Column Action Board", "📑 Master Audit List & Export"])
+
+def render_sop_card(item):
+    sop_info = parse_sop_link(item["Confluence_URL"])
+    status_grp = item["Status_Group"]
     
-    table_df = filtered_df[[
+    if status_grp == "Blocked":
+        card_border = "border-left: 4px solid #EF5350;"
+        badge_bg = "rgba(239, 83, 80, 0.15)"
+        badge_color = "#FF8A80"
+        blocker_box = f'''
+        <div style="background-color: rgba(239, 83, 80, 0.08); border-left: 3px solid #EF5350; border-radius: 4px; padding: 7px 9px; margin-bottom: 10px; font-size: 12px; color: #FFCDD2; line-height: 1.35;">
+            <strong>⚠️ Blocker:</strong> {item["Key_Blockers_or_Notes"]}
+        </div>
+        '''
+    elif status_grp == "In Progress":
+        card_border = "border-left: 4px solid #42A5F5;"
+        badge_bg = "rgba(66, 165, 245, 0.15)"
+        badge_color = "#90CAF9"
+        blocker_box = f'''
+        <div style="background-color: rgba(66, 165, 245, 0.08); border-left: 3px solid #42A5F5; border-radius: 4px; padding: 7px 9px; margin-bottom: 10px; font-size: 12px; color: #BBDEFB; line-height: 1.35;">
+            <strong>ℹ️ Next Step:</strong> {item["Key_Blockers_or_Notes"]}
+        </div>
+        '''
+    else:
+        card_border = "border-left: 4px solid #78909C;"
+        badge_bg = "rgba(120, 144, 156, 0.15)"
+        badge_color = "#B0BEC5"
+        blocker_box = f'''
+        <div style="background-color: rgba(120, 144, 156, 0.08); border-left: 3px solid #78909C; border-radius: 4px; padding: 7px 9px; margin-bottom: 10px; font-size: 12px; color: #CFD8DC; line-height: 1.35;">
+            <strong>📌 Scope:</strong> {item["Key_Blockers_or_Notes"]}
+        </div>
+        '''
+
+    if sop_info["type"] == "confluence":
+        sop_html = f'<a href="{sop_info["url"]}" target="_blank" class="card-btn btn-confluence">{sop_info["label"]}</a>'
+    elif sop_info["type"] == "doc":
+        sop_html = f'<a href="{sop_info["url"]}" target="_blank" class="card-btn btn-doc">{sop_info["label"]}</a>'
+    else:
+        sop_html = f'<span class="badge-unmapped">{sop_info["label"]}</span>'
+
+    jira_html = f'<a href="{item["Clean_Jira_URL"]}" target="_blank" class="card-btn btn-jira">🎫 Jira: {item["SOP_ID"]} ↗</a>' if item["Clean_Jira_URL"] else f'<span class="card-btn btn-jira">{item["SOP_ID"]}</span>'
+
+    html = f'''
+    <div class="sop-card" style="{card_border}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-family: monospace; font-size: 12px; font-weight: 700; color: #90CAF9; background: #131720; padding: 2px 6px; border-radius: 4px;">{item["SOP_ID"]}</span>
+            <span style="background-color: {badge_bg}; color: {badge_color}; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px;">{item["Jira_Status"]}</span>
+        </div>
+        <div style="font-size: 14px; font-weight: 600; color: #F0F4F8; line-height: 1.3; margin-bottom: 6px;">
+            {item["SOP_Title"]}
+        </div>
+        <div style="font-size: 12px; color: #8F9CAE; margin-bottom: 8px;">
+            <strong style="color: #CBD5E1;">Owner:</strong> {item["Compliance_Owner"]} &nbsp;·&nbsp; <strong style="color: #CBD5E1;">From:</strong> {item["Requesting_Stakeholder"]}
+        </div>
+        <div style="background-color: #12151D; border-radius: 5px; padding: 7px 9px; font-size: 12px; color: #CBD5E1; line-height: 1.35; margin-bottom: 8px;">
+            <strong style="color: #90CAF9;">Change:</strong> {item["Jira_Summary"]}
+        </div>
+        {blocker_box}
+        <div style="margin-top: 6px;">
+            {jira_html}
+            {sop_html}
+        </div>
+    </div>
+    '''
+    return html
+
+with tab_board:
+    col_b, col_p, col_q = st.columns(3)
+    
+    blocked_cards = filtered_df[filtered_df["Status_Group"] == "Blocked"]
+    inprog_cards = filtered_df[filtered_df["Status_Group"] == "In Progress"]
+    backlog_cards = filtered_df[filtered_df["Status_Group"] == "Backlog"]
+    
+    with col_b:
+        st.markdown(f"### 🔴 Blocked / On Hold ({len(blocked_cards)})")
+        st.caption("External dependencies requiring resolution")
+        if len(blocked_cards) == 0:
+            st.info("No blocked tickets in this view.")
+        else:
+            for _, item in blocked_cards.iterrows():
+                st.markdown(render_sop_card(item), unsafe_allow_html=True)
+                
+    with col_p:
+        st.markdown(f"### 🔵 In Progress ({len(inprog_cards)})")
+        st.caption("Active updates currently being drafted/reviewed")
+        if len(inprog_cards) == 0:
+            st.info("No in-progress tickets in this view.")
+        else:
+            for _, item in inprog_cards.iterrows():
+                st.markdown(render_sop_card(item), unsafe_allow_html=True)
+                
+    with col_q:
+        st.markdown(f"### ⚪ Backlog ({len(backlog_cards)})")
+        st.caption("Queued for scoping or companion SOP rollout")
+        if len(backlog_cards) == 0:
+            st.info("No backlog tickets in this view.")
+        else:
+            for _, item in backlog_cards.iterrows():
+                st.markdown(render_sop_card(item), unsafe_allow_html=True)
+
+with tab_table:
+    st.subheader("Master Compliance Change Log")
+    st.caption("Audit roster of all stakeholder change requests with direct links to Atlassian trackers.")
+    
+    table_view = filtered_df[[
         "SOP_ID", "SOP_Title", "Compliance_Owner", "Jira_Status", 
-        "Requesting_Stakeholder", "Clean_Jira_URL", "Clean_Confluence_URL"
+        "Priority", "Requesting_Stakeholder", "Clean_Jira_URL", "Confluence_URL"
     ]].copy()
     
     st.dataframe(
-        table_df,
+        table_view,
         column_config={
-            "SOP_ID": "ID",
-            "SOP_Title": "Procedure Name",
+            "SOP_ID": "Ticket ID",
+            "SOP_Title": "SOP Title / Change Target",
             "Compliance_Owner": "Owner",
             "Jira_Status": "Status",
+            "Priority": "Priority",
             "Requesting_Stakeholder": "Requested By",
             "Clean_Jira_URL": st.column_config.LinkColumn("Jira Ticket"),
-            "Clean_Confluence_URL": st.column_config.LinkColumn("Document Link"),
+            "Confluence_URL": "SOP / Document Target",
         },
         hide_index=True,
         use_container_width=True
     )
     
     st.download_button(
-        label="📥 Download Log (CSV)",
+        label="📥 Export Master Roster to CSV",
         data=filtered_df.to_csv(index=False).encode('utf-8'),
-        file_name=f"compliance_sop_requests_{datetime.now().strftime('%Y%m%d')}.csv",
+        file_name=f"compliance_sop_master_log_{datetime.now().strftime('%Y%m%d')}.csv",
         mime="text/csv"
     )
