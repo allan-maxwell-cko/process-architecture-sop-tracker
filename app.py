@@ -14,6 +14,153 @@ st.set_page_config(
 
 CSV_FILE = "Compliance_SOP_Tracker_Master.csv"
 
+# Safe default dataset to guarantee it never crashes
+DEFAULT_RECORDS = [
+    {
+        "SOP_ID": "OEPT-2965",
+        "SOP_NAME": "Sanctions Transaction Screening SOP",
+        "SOP_UPDATE_NAME": "Screening Hub Payouts - escalation process & RBA rationale",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2965",
+        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/CheckMate/pages/8617066698",
+        "UPDATE_OWNER": "Allan Maxwell",
+        "APPROVER": "Pooja Lutchmun",
+        "UPDATE_STATUS": "Signed Off",
+        "PRIORITY": "Medium",
+        "TIMELINE": "Effective immediately",
+        "KEY_BLOCKER": "Refinements approved; pick-list of RBA reasons finalized."
+    },
+    {
+        "SOP_ID": "OEPT-2988",
+        "SOP_NAME": "[DRAFT] UAE 2nd Bin / Sanctions SOP",
+        "SOP_UPDATE_NAME": "Create Binance AFT Post-Transaction Sanctions Screening SOP",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2988",
+        "CONFLUENCE_URL": "https://docs.google.com/document/d/1feuuxbHtmFX2kbiEC3QQR6_Bufzko5Pd2kaJhgqRCJY",
+        "UPDATE_OWNER": "Bernard Ryan",
+        "APPROVER": "Pooja Lutchmun",
+        "UPDATE_STATUS": "In progress",
+        "PRIORITY": "High",
+        "TIMELINE": "16-October-2026",
+        "KEY_BLOCKER": "Must flag process decisions still needing stakeholder agreement before finalising."
+    },
+    {
+        "SOP_ID": "OEPT-2916",
+        "SOP_NAME": "Binance AFT Post-Transaction Screening QC SOP",
+        "SOP_UPDATE_NAME": "Create QC SOP — sample rate, review criteria, error classification, escalation",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2916",
+        "CONFLUENCE_URL": "",
+        "UPDATE_OWNER": "Bernard Ryan",
+        "APPROVER": "Allan Maxwell",
+        "UPDATE_STATUS": "Not Started",
+        "PRIORITY": "Medium",
+        "TIMELINE": "25-December-2026",
+        "KEY_BLOCKER": "Depends on companion SOP OEPT-2914 (base process) and OEPT-2988 rollout."
+    },
+    {
+        "SOP_ID": "OEPT-1598",
+        "SOP_NAME": "Manual Screening: Fircosoft Compliance Link SOP + AML QC SOP",
+        "SOP_UPDATE_NAME": "Update manual-screening QC SOP, build dedicated testing script, complete pre-live UAT",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-1598",
+        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/CheckMate/pages/7892631747",
+        "UPDATE_OWNER": "Allan Maxwell",
+        "APPROVER": "Preshika Beerjeraz (QC)",
+        "UPDATE_STATUS": "Blocked",
+        "PRIORITY": "High",
+        "TIMELINE": "Target: Q4 2026",
+        "KEY_BLOCKER": "Awaiting process clarification from Ana and confirmation on MENA manual-screening route."
+    },
+    {
+        "SOP_ID": "OEPT-1723",
+        "SOP_NAME": "Multiple legacy SOPs (gap analysis vs. Group Minimum Standards)",
+        "SOP_UPDATE_NAME": "Align all SOPs with Group Minimum Standards; gap analysis of legacy SOPs",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-1723",
+        "CONFLUENCE_URL": "",
+        "UPDATE_OWNER": "Bernard Ryan",
+        "APPROVER": "CCO / Legal (Neelam Sian)",
+        "UPDATE_STATUS": "Blocked",
+        "PRIORITY": "Medium",
+        "TIMELINE": "Pending V3 Standards",
+        "KEY_BLOCKER": "Paused pending publication of V3 minimum standards; V2 with CCO for final sign-off."
+    },
+    {
+        "SOP_ID": "OEPT-2726",
+        "SOP_NAME": "UK CDD & EDD Requirements",
+        "SOP_UPDATE_NAME": "Remediate UK Audit Finding 3.1 (SoF/SoW, EDD, PEP approvals, 1LOD QC)",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2726",
+        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/GC/pages/5684203518",
+        "UPDATE_OWNER": "Bernard Ryan",
+        "APPROVER": "UK Internal Audit (Brian Weir)",
+        "UPDATE_STATUS": "In progress",
+        "PRIORITY": "Critical",
+        "TIMELINE": "Target: November 2026",
+        "KEY_BLOCKER": "3 of 5 updates drafted and shared with MLRO; final 2 items + MLRO feedback outstanding."
+    },
+    {
+        "SOP_ID": "OEPT-2850",
+        "SOP_NAME": "Onboarding Agent Runbook",
+        "SOP_UPDATE_NAME": "Add interim manual check for future-incorporation-date cases pending long-term engineering fix",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2850",
+        "CONFLUENCE_URL": "",
+        "UPDATE_OWNER": "Bernard Ryan",
+        "APPROVER": "Ashish Tyagi (Ops Centre)",
+        "UPDATE_STATUS": "In progress",
+        "PRIORITY": "Medium",
+        "TIMELINE": "Interim fix live",
+        "KEY_BLOCKER": "Awaiting reporter confirmation on exact escalation path (EPACT-2511 dependency)."
+    },
+    {
+        "SOP_ID": "OEPT-257",
+        "SOP_NAME": "Ongoing Alert Screening (OGS) SOP",
+        "SOP_UPDATE_NAME": "New/updated procedure for working Sanctions GWL alerts within 24hr SLA during Salesforce outages",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-257",
+        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/GC/pages/7150305282",
+        "UPDATE_OWNER": "Allan Maxwell",
+        "APPROVER": "Kevin Gopaul (Ops)",
+        "UPDATE_STATUS": "Blocked",
+        "PRIORITY": "High",
+        "TIMELINE": "Awaiting Ops Response",
+        "KEY_BLOCKER": "Awaiting Kevin Gopaul response on whether Manual C-Link CSV route can be incorporated."
+    },
+    {
+        "SOP_ID": "OEPT-2827",
+        "SOP_NAME": "Exception Settlement Request (ESR) Process Guidance",
+        "SOP_UPDATE_NAME": "Integrate internal blocklist screening for third-party ESR beneficiaries into SOP",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2827",
+        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/CheckMate/pages/5685120612",
+        "UPDATE_OWNER": "Bernard Ryan",
+        "APPROVER": "Mirabel Tay (Compliance)",
+        "UPDATE_STATUS": "Not Started",
+        "PRIORITY": "Medium",
+        "TIMELINE": "Q4 2026 Scoping",
+        "KEY_BLOCKER": "Long-term fix depends on RA Tool/Genesis build; mapping interim workflow first."
+    },
+    {
+        "SOP_ID": "OEPT-2791",
+        "SOP_NAME": "QC Reform & Feedback Loop",
+        "SOP_UPDATE_NAME": "Standardise QC across Operations; build feedback loop so QC findings drive timely SOP updates",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2791",
+        "CONFLUENCE_URL": "",
+        "UPDATE_OWNER": "Allan Maxwell",
+        "APPROVER": "QC & Compliance Ops",
+        "UPDATE_STATUS": "Awaiting Review",
+        "PRIORITY": "Medium",
+        "TIMELINE": "Phase 1 Pilot",
+        "KEY_BLOCKER": "Depends on BigQuery setup, Arrakis portal access, and pilot-team confirmation."
+    },
+    {
+        "SOP_ID": "OEPT-2855",
+        "SOP_NAME": "Very High Country Risk Rating / HRTC jurisdictional list",
+        "SOP_UPDATE_NAME": "Release jurisdictional HTRC list so FATF grey-listed countries route to Restricted in 1LOD empowerment",
+        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2855",
+        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/GC/pages/5684205973",
+        "UPDATE_OWNER": "Bernard Ryan",
+        "APPROVER": "Jourdan Blessyn",
+        "UPDATE_STATUS": "In progress",
+        "PRIORITY": "Medium",
+        "TIMELINE": "Ready for Comms",
+        "KEY_BLOCKER": "Updated SSOT spreadsheet shared; awaiting Jourdan review before publishing."
+    }
+]
+
 def safe_rerun():
     if hasattr(st, "rerun"):
         st.rerun()
@@ -58,8 +205,15 @@ def parse_sop_link(val):
 
 def load_data():
     if os.path.exists(CSV_FILE):
-        return pd.read_csv(CSV_FILE, quotechar='"', skipinitialspace=True)
-    return pd.DataFrame()
+        try:
+            loaded_df = pd.read_csv(CSV_FILE)
+            if len(loaded_df) > 0 and "SOP_ID" in loaded_df.columns:
+                return loaded_df
+        except Exception:
+            pass
+    fallback_df = pd.DataFrame(DEFAULT_RECORDS)
+    fallback_df.to_csv(CSV_FILE, index=False)
+    return fallback_df
 
 if "tracker_data" not in st.session_state:
     st.session_state.tracker_data = load_data()
@@ -433,7 +587,6 @@ with view_tab1:
             """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            # Interactive Quick Triage Dropdown underneath each card
             c_status, c_msg, _ = st.columns([2, 3, 5])
             with c_status:
                 status_choices = ["In progress", "Signed Off", "Blocked", "Awaiting Review", "Under Review", "Not Started"]
