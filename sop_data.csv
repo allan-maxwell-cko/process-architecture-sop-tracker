@@ -1,8 +1,10 @@
-Team,Jira Key,Display Title,Raw Jira Title,Doc Type,Status,Blocker / Notes,Owner,Link,Hide
-AML Transaction Monitoring,CDCR-32,AML (Pay-in) TM – Recipient Review (L1) xx,drafting fix for tm recipient - Tejash,Google Doc,Awaiting Approval,Drafted; awaiting final sign-off confirmation,Tejash Chunnoo,https://docs.google.com,False
-AML Transaction Monitoring,OEPT-1154,AML TM SOP – L1 Triage,consolidate 3 sops into one L1 triage global,Confluence,In Progress,Consolidation pilot complete; awaiting go/no-go call,Bernard Ryan,https://checkout.atlassian.net,False
-Merchant Screening & Sanctions,OEPT-1656,Adverse Media Monitoring – L1 (Owlin),OEPT-1656 Owlin signoff blockers,Google Doc,Blocked,Awaiting decision on whether Owlin deprecates by EOY,Kevin Gopaul,https://docs.google.com,False
-Merchant Screening & Sanctions,OEPT-2460,Transaction Sanctions Screening – Fircosoft L1,UAE audit finding external RFI SLA task,Confluence,Stale (>14d),UAE audit finding: must show External RFI SLA (untouched),Bernard Ryan,https://checkout.atlassian.net,False
-Merchant Screening & Sanctions,OEPT-2827,Exception Settlement Request (ESR) SOP,ESR internal blocklist compliance fix,Google Doc,Blocked,Requires product-based fix (RA Tool/Genesis) before finalizing,Bernard Ryan,https://docs.google.com,False
-Due Diligence & RFIs,OEPT-2939,Brazil Onboarding Due Diligence Review SOP,OEPT-2939 CPF tax id review,Google Doc,Blocked,Mandates local CPF tax ID; requires formal MLRO sign-off,Bernard Ryan,https://docs.google.com,False
-AML Transaction Monitoring,TEST-101,TEST-101,TEST-101,Confluence,Published,,Allan Maxwell,https://checkout.com,False
+SOP_ID,Title,Domain,Domain_Lead,Owner,Status,Last_Reviewed,Next_Review_Due,Jira_Blocker,Jira_Status,Confluence_URL
+SOP-101,Merchant Due Diligence & KYC Verification,Compliance,Bernard Ryan,Allan Maxwell,Compliant,2024-08-15,2024-11-15,None,Resolved,https://confluence.ckotech.co/display/PA/SOP-101
+SOP-102,Merchant Dispute & Exception Handling,Merchant Ops,Wes Nolan,Joel Petrosino,Review Overdue,2024-05-10,2024-08-10,MOPS-4291,In Progress,https://confluence.ckotech.co/display/PA/SOP-102
+SOP-103,Scheme Regulatory Submissions & Licensing,Compliance,Bernard Ryan,Neema Nev,Needs Review,2024-07-01,2024-10-01,COMP-1082,To Do,https://confluence.ckotech.co/display/PA/SOP-103
+SOP-104,Interchange & Scheme Fee Reconciliation,Finance Ops,Wes Nolan,Marcin Leśniewski,Compliant,2024-09-20,2024-12-20,None,Resolved,https://confluence.ckotech.co/display/PA/SOP-104
+SOP-105,Fraud Velocity Rule Deployment,Risk,Daniel Kliza,Daniel Kliza,Critical Action,2024-04-12,2024-07-12,RISK-8812,Open,https://confluence.ckotech.co/display/PA/SOP-105
+SOP-106,Chargeback Representment Automation,Risk,Daniel Kliza,Krishan Raveenthiran,Compliant,2024-09-01,2024-12-01,None,Resolved,https://confluence.ckotech.co/display/PA/SOP-106
+SOP-107,Settlement Sweeps & FX Balancing,Finance Ops,Wes Nolan,Dooshan Bheenick,Needs Review,2024-06-30,2024-09-30,FIN-5102,In Review,https://confluence.ckotech.co/display/PA/SOP-107
+SOP-108,High-Volume Merchant Onboarding,Merchant Ops,Wes Nolan,Wes Nolan,Compliant,2024-08-10,2024-11-10,None,Resolved,https://confluence.ckotech.co/display/PA/SOP-108
+SOP-109,Anti-Money Laundering (AML) Escalations,Compliance,Bernard Ryan,Bernard Ryan,Compliant,2024-09-15,2024-12-15,None,Resolved,https://confluence.ckotech.co/display/PA/SOP-109
