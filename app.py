@@ -76,19 +76,51 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def clean_url(val):
-    if not isinstance(val, str):
-        return None
-    match = re.search(r'https?://[^\s)]+', val)
-    return match.group(0) if match else None
+def auto_link_text(text):
+    if not isinstance(text, str) or not text.strip():
+        return ""
+    
+    # 1. Protect existing URLs
+    urls = []
+    def save_url(m):
+        raw = m.group(0)
+        clean = raw.rstrip('.,;:)')
+        trail = raw[len(clean):]
+        idx = len(urls)
+        urls.append(clean)
+        return f"__LINK_TOKEN_{idx}__{trail}"
+    
+    formatted = re.sub(r'https?://[^\s]+', save_url, text)
+    
+    # 2. Auto-link any mentioned Jira ticket key (e.g., EPACT-2511, OEPT-2914)
+    def link_ticket(m):
+        ticket = m.group(1)
+        return f'<a href="https://checkout.atlassian.net/browse/{ticket}" target="_blank" style="color: #90CAF9; text-decoration: underline; font-weight: 600;">{ticket} ↗</a>'
+    
+    formatted = re.sub(r'\b([A-Z]{2,10}-\d+)\b', link_ticket, formatted)
+    
+    # 3. Restore URLs as styled links
+    for idx, u in enumerate(urls):
+        if "wiki" in u or "spaces" in u:
+            label = "📘 Confluence SOP ↗"
+        elif "docs.google.com" in u:
+            label = "📄 Google Doc ↗"
+        elif "browse" in u:
+            label = "🎫 Jira Ticket ↗"
+        else:
+            label = "🔗 Document Link ↗"
+        replacement = f'<a href="{u}" target="_blank" style="color: #80D8FF; text-decoration: underline; font-weight: 500;">{label}</a>'
+        formatted = formatted.replace(f"__LINK_TOKEN_{idx}__", replacement)
+        
+    return formatted
 
 def parse_sop_link(val):
-    if not isinstance(val, str):
+    if not isinstance(val, str) or not val.strip():
         return {"type": "none", "label": "⚠️ Needs SOP Mapping", "url": None}
     match = re.search(r'https?://[^\s)]+', val)
     if not match:
         return {"type": "none", "label": "⚠️ Needs SOP Mapping", "url": None}
-    url = match.group(0)
+    url = match.group(0).rstrip('.,;:)')
     if "docs.google.com" in url:
         return {"type": "doc", "label": "📄 Working Draft Doc ↗", "url": url}
     elif "atlassian.net" in url:
@@ -108,7 +140,6 @@ def categorize_status(s):
 @st.cache_data(ttl=60)
 def load_data():
     df = pd.read_csv("Compliance_SOP_Change_Requests.csv")
-    df["Clean_Jira_URL"] = df["Jira_Ticket"].apply(clean_url)
     df["Status_Group"] = df["Jira_Status"].apply(categorize_status)
     return df
 
@@ -201,67 +232,71 @@ tab_board, tab_table = st.tabs(["📌 3-Column Action Board", "📑 Master Audit
 def render_sop_card(item):
     sop_info = parse_sop_link(item["Confluence_URL"])
     status_grp = item["Status_Group"]
+    clean_jira_url = f"https://checkout.atlassian.net/browse/{item['SOP_ID']}"
+    
+    # Auto-link any Jira tickets or URLs mentioned in summary or notes
+    formatted_summary = auto_link_text(item["Jira_Summary"])
+    formatted_blocker = auto_link_text(item["Key_Blockers_or_Notes"])
     
     if status_grp == "Blocked":
-        card_border = "border-left: 4px solid #EF5350;"
+        border_color = "#EF5350"
         badge_bg = "rgba(239, 83, 80, 0.15)"
         badge_color = "#FF8A80"
-        blocker_box = f'''
-        <div style="background-color: rgba(239, 83, 80, 0.08); border-left: 3px solid #EF5350; border-radius: 4px; padding: 7px 9px; margin-bottom: 10px; font-size: 12px; color: #FFCDD2; line-height: 1.35;">
-            <strong>⚠️ Blocker:</strong> {item["Key_Blockers_or_Notes"]}
-        </div>
-        '''
+        callout_bg = "rgba(239, 83, 80, 0.08)"
+        callout_border = "#EF5350"
+        callout_text = "#FFCDD2"
+        callout_label = "⚠️ Blocker / Dependency"
     elif status_grp == "In Progress":
-        card_border = "border-left: 4px solid #42A5F5;"
+        border_color = "#42A5F5"
         badge_bg = "rgba(66, 165, 245, 0.15)"
         badge_color = "#90CAF9"
-        blocker_box = f'''
-        <div style="background-color: rgba(66, 165, 245, 0.08); border-left: 3px solid #42A5F5; border-radius: 4px; padding: 7px 9px; margin-bottom: 10px; font-size: 12px; color: #BBDEFB; line-height: 1.35;">
-            <strong>ℹ️ Next Step:</strong> {item["Key_Blockers_or_Notes"]}
-        </div>
-        '''
+        callout_bg = "rgba(66, 165, 245, 0.08)"
+        callout_border = "#42A5F5"
+        callout_text = "#BBDEFB"
+        callout_label = "ℹ️ Next Step"
     else:
-        card_border = "border-left: 4px solid #78909C;"
+        border_color = "#78909C"
         badge_bg = "rgba(120, 144, 156, 0.15)"
         badge_color = "#B0BEC5"
-        blocker_box = f'''
-        <div style="background-color: rgba(120, 144, 156, 0.08); border-left: 3px solid #78909C; border-radius: 4px; padding: 7px 9px; margin-bottom: 10px; font-size: 12px; color: #CFD8DC; line-height: 1.35;">
-            <strong>📌 Scope:</strong> {item["Key_Blockers_or_Notes"]}
-        </div>
-        '''
+        callout_bg = "rgba(120, 144, 156, 0.08)"
+        callout_border = "#78909C"
+        callout_text = "#CFD8DC"
+        callout_label = "📌 Status & Scope"
 
+    # SOP Link / Button
     if sop_info["type"] == "confluence":
-        sop_html = f'<a href="{sop_info["url"]}" target="_blank" class="card-btn btn-confluence">{sop_info["label"]}</a>'
+        sop_button = f'<a href="{sop_info["url"]}" target="_blank" class="card-btn btn-confluence">{sop_info["label"]}</a>'
+        title_html = f'<a href="{sop_info["url"]}" target="_blank" style="color: #F0F4F8; text-decoration: none; font-weight: 600;">{item["SOP_Title"]} ↗</a>'
     elif sop_info["type"] == "doc":
-        sop_html = f'<a href="{sop_info["url"]}" target="_blank" class="card-btn btn-doc">{sop_info["label"]}</a>'
+        sop_button = f'<a href="{sop_info["url"]}" target="_blank" class="card-btn btn-doc">{sop_info["label"]}</a>'
+        title_html = f'<a href="{sop_info["url"]}" target="_blank" style="color: #F0F4F8; text-decoration: none; font-weight: 600;">{item["SOP_Title"]} ↗</a>'
     else:
-        sop_html = f'<span class="badge-unmapped">{sop_info["label"]}</span>'
+        sop_button = f'<span class="badge-unmapped">{sop_info["label"]}</span>'
+        title_html = f'<span style="color: #F0F4F8; font-weight: 600;">{item["SOP_Title"]}</span>'
 
-    jira_html = f'<a href="{item["Clean_Jira_URL"]}" target="_blank" class="card-btn btn-jira">🎫 Jira: {item["SOP_ID"]} ↗</a>' if item["Clean_Jira_URL"] else f'<span class="card-btn btn-jira">{item["SOP_ID"]}</span>'
+    jira_button = f'<a href="{clean_jira_url}" target="_blank" class="card-btn btn-jira">🎫 Jira: {item["SOP_ID"]} ↗</a>'
 
-    html = f'''
-    <div class="sop-card" style="{card_border}">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span style="font-family: monospace; font-size: 12px; font-weight: 700; color: #90CAF9; background: #131720; padding: 2px 6px; border-radius: 4px;">{item["SOP_ID"]}</span>
-            <span style="background-color: {badge_bg}; color: {badge_color}; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px;">{item["Jira_Status"]}</span>
-        </div>
-        <div style="font-size: 14px; font-weight: 600; color: #F0F4F8; line-height: 1.3; margin-bottom: 6px;">
-            {item["SOP_Title"]}
-        </div>
-        <div style="font-size: 12px; color: #8F9CAE; margin-bottom: 8px;">
-            <strong style="color: #CBD5E1;">Owner:</strong> {item["Compliance_Owner"]} &nbsp;·&nbsp; <strong style="color: #CBD5E1;">From:</strong> {item["Requesting_Stakeholder"]}
-        </div>
-        <div style="background-color: #12151D; border-radius: 5px; padding: 7px 9px; font-size: 12px; color: #CBD5E1; line-height: 1.35; margin-bottom: 8px;">
-            <strong style="color: #90CAF9;">Change:</strong> {item["Jira_Summary"]}
-        </div>
-        {blocker_box}
-        <div style="margin-top: 6px;">
-            {jira_html}
-            {sop_html}
-        </div>
-    </div>
-    '''
-    return html
+    # Build HTML without multiline indentation to avoid Markdown code-block parsing
+    parts = [
+        f'<div class="sop-card" style="border-left: 4px solid {border_color};">',
+        f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">',
+        f'<a href="{clean_jira_url}" target="_blank" style="font-family: monospace; font-size: 12px; font-weight: 700; color: #90CAF9; background: #131720; padding: 2px 6px; border-radius: 4px; text-decoration: none;">{item["SOP_ID"]} ↗</a>',
+        f'<span style="background-color: {badge_bg}; color: {badge_color}; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px;">{item["Jira_Status"]}</span>',
+        f'</div>',
+        f'<div style="font-size: 14px; line-height: 1.35; margin-bottom: 6px;">{title_html}</div>',
+        f'<div style="font-size: 12px; color: #8F9CAE; margin-bottom: 8px;">',
+        f'<strong style="color: #CBD5E1;">Owner:</strong> {item["Compliance_Owner"]} &nbsp;·&nbsp; <strong style="color: #CBD5E1;">From:</strong> {item["Requesting_Stakeholder"]}',
+        f'</div>',
+        f'<div style="background-color: #12151D; border-radius: 5px; padding: 7px 9px; font-size: 12px; color: #CBD5E1; line-height: 1.4; margin-bottom: 8px;">',
+        f'<strong style="color: #90CAF9;">Change:</strong> {formatted_summary}',
+        f'</div>',
+        f'<div style="background-color: {callout_bg}; border-left: 3px solid {callout_border}; border-radius: 4px; padding: 7px 9px; margin-bottom: 10px; font-size: 12px; color: {callout_text}; line-height: 1.4;">',
+        f'<strong>{callout_label}:</strong> {formatted_blocker}',
+        f'</div>',
+        f'<div style="margin-top: 8px;">{jira_button} {sop_button}</div>',
+        f'</div>'
+    ]
+    return "".join(parts)
 
 with tab_board:
     col_b, col_p, col_q = st.columns(3)
@@ -303,8 +338,10 @@ with tab_table:
     
     table_view = filtered_df[[
         "SOP_ID", "SOP_Title", "Compliance_Owner", "Jira_Status", 
-        "Priority", "Requesting_Stakeholder", "Clean_Jira_URL", "Confluence_URL"
+        "Priority", "Requesting_Stakeholder", "Confluence_URL"
     ]].copy()
+    
+    table_view["Jira_Link"] = "https://checkout.atlassian.net/browse/" + table_view["SOP_ID"]
     
     st.dataframe(
         table_view,
@@ -315,7 +352,7 @@ with tab_table:
             "Jira_Status": "Status",
             "Priority": "Priority",
             "Requesting_Stakeholder": "Requested By",
-            "Clean_Jira_URL": st.column_config.LinkColumn("Jira Ticket"),
+            "Jira_Link": st.column_config.LinkColumn("Jira Ticket"),
             "Confluence_URL": "SOP / Document Target",
         },
         hide_index=True,
