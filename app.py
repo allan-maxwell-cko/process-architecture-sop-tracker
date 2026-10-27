@@ -3,163 +3,15 @@ import pandas as pd
 from datetime import datetime
 import os
 import re
-import plotly.express as px
 
 st.set_page_config(
-    page_title="SOP Update Tracker | Checkout.com",
+    page_title="Compliance SOP Governance Board | Checkout.com",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 CSV_FILE = "Compliance_SOP_Tracker_Master.csv"
-
-# Safe default dataset to guarantee it never crashes
-DEFAULT_RECORDS = [
-    {
-        "SOP_ID": "OEPT-2965",
-        "SOP_NAME": "Sanctions Transaction Screening SOP",
-        "SOP_UPDATE_NAME": "Screening Hub Payouts - escalation process & RBA rationale",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2965",
-        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/CheckMate/pages/8617066698",
-        "UPDATE_OWNER": "Allan Maxwell",
-        "APPROVER": "Pooja Lutchmun",
-        "UPDATE_STATUS": "Signed Off",
-        "PRIORITY": "Medium",
-        "TIMELINE": "Effective immediately",
-        "KEY_BLOCKER": "Refinements approved; pick-list of RBA reasons finalized."
-    },
-    {
-        "SOP_ID": "OEPT-2988",
-        "SOP_NAME": "[DRAFT] UAE 2nd Bin / Sanctions SOP",
-        "SOP_UPDATE_NAME": "Create Binance AFT Post-Transaction Sanctions Screening SOP",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2988",
-        "CONFLUENCE_URL": "https://docs.google.com/document/d/1feuuxbHtmFX2kbiEC3QQR6_Bufzko5Pd2kaJhgqRCJY",
-        "UPDATE_OWNER": "Bernard Ryan",
-        "APPROVER": "Pooja Lutchmun",
-        "UPDATE_STATUS": "In progress",
-        "PRIORITY": "High",
-        "TIMELINE": "16-October-2026",
-        "KEY_BLOCKER": "Must flag process decisions still needing stakeholder agreement before finalising."
-    },
-    {
-        "SOP_ID": "OEPT-2916",
-        "SOP_NAME": "Binance AFT Post-Transaction Screening QC SOP",
-        "SOP_UPDATE_NAME": "Create QC SOP — sample rate, review criteria, error classification, escalation",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2916",
-        "CONFLUENCE_URL": "",
-        "UPDATE_OWNER": "Bernard Ryan",
-        "APPROVER": "Allan Maxwell",
-        "UPDATE_STATUS": "Not Started",
-        "PRIORITY": "Medium",
-        "TIMELINE": "25-December-2026",
-        "KEY_BLOCKER": "Depends on companion SOP OEPT-2914 (base process) and OEPT-2988 rollout."
-    },
-    {
-        "SOP_ID": "OEPT-1598",
-        "SOP_NAME": "Manual Screening: Fircosoft Compliance Link SOP + AML QC SOP",
-        "SOP_UPDATE_NAME": "Update manual-screening QC SOP, build dedicated testing script, complete pre-live UAT",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-1598",
-        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/CheckMate/pages/7892631747",
-        "UPDATE_OWNER": "Allan Maxwell",
-        "APPROVER": "Preshika Beerjeraz (QC)",
-        "UPDATE_STATUS": "Blocked",
-        "PRIORITY": "High",
-        "TIMELINE": "Target: Q4 2026",
-        "KEY_BLOCKER": "Awaiting process clarification from Ana and confirmation on MENA manual-screening route."
-    },
-    {
-        "SOP_ID": "OEPT-1723",
-        "SOP_NAME": "Multiple legacy SOPs (gap analysis vs. Group Minimum Standards)",
-        "SOP_UPDATE_NAME": "Align all SOPs with Group Minimum Standards; gap analysis of legacy SOPs",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-1723",
-        "CONFLUENCE_URL": "",
-        "UPDATE_OWNER": "Bernard Ryan",
-        "APPROVER": "CCO / Legal (Neelam Sian)",
-        "UPDATE_STATUS": "Blocked",
-        "PRIORITY": "Medium",
-        "TIMELINE": "Pending V3 Standards",
-        "KEY_BLOCKER": "Paused pending publication of V3 minimum standards; V2 with CCO for final sign-off."
-    },
-    {
-        "SOP_ID": "OEPT-2726",
-        "SOP_NAME": "UK CDD & EDD Requirements",
-        "SOP_UPDATE_NAME": "Remediate UK Audit Finding 3.1 (SoF/SoW, EDD, PEP approvals, 1LOD QC)",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2726",
-        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/GC/pages/5684203518",
-        "UPDATE_OWNER": "Bernard Ryan",
-        "APPROVER": "UK Internal Audit (Brian Weir)",
-        "UPDATE_STATUS": "In progress",
-        "PRIORITY": "Critical",
-        "TIMELINE": "Target: November 2026",
-        "KEY_BLOCKER": "3 of 5 updates drafted and shared with MLRO; final 2 items + MLRO feedback outstanding."
-    },
-    {
-        "SOP_ID": "OEPT-2850",
-        "SOP_NAME": "Onboarding Agent Runbook",
-        "SOP_UPDATE_NAME": "Add interim manual check for future-incorporation-date cases pending long-term engineering fix",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2850",
-        "CONFLUENCE_URL": "",
-        "UPDATE_OWNER": "Bernard Ryan",
-        "APPROVER": "Ashish Tyagi (Ops Centre)",
-        "UPDATE_STATUS": "In progress",
-        "PRIORITY": "Medium",
-        "TIMELINE": "Interim fix live",
-        "KEY_BLOCKER": "Awaiting reporter confirmation on exact escalation path (EPACT-2511 dependency)."
-    },
-    {
-        "SOP_ID": "OEPT-257",
-        "SOP_NAME": "Ongoing Alert Screening (OGS) SOP",
-        "SOP_UPDATE_NAME": "New/updated procedure for working Sanctions GWL alerts within 24hr SLA during Salesforce outages",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-257",
-        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/GC/pages/7150305282",
-        "UPDATE_OWNER": "Allan Maxwell",
-        "APPROVER": "Kevin Gopaul (Ops)",
-        "UPDATE_STATUS": "Blocked",
-        "PRIORITY": "High",
-        "TIMELINE": "Awaiting Ops Response",
-        "KEY_BLOCKER": "Awaiting Kevin Gopaul response on whether Manual C-Link CSV route can be incorporated."
-    },
-    {
-        "SOP_ID": "OEPT-2827",
-        "SOP_NAME": "Exception Settlement Request (ESR) Process Guidance",
-        "SOP_UPDATE_NAME": "Integrate internal blocklist screening for third-party ESR beneficiaries into SOP",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2827",
-        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/CheckMate/pages/5685120612",
-        "UPDATE_OWNER": "Bernard Ryan",
-        "APPROVER": "Mirabel Tay (Compliance)",
-        "UPDATE_STATUS": "Not Started",
-        "PRIORITY": "Medium",
-        "TIMELINE": "Q4 2026 Scoping",
-        "KEY_BLOCKER": "Long-term fix depends on RA Tool/Genesis build; mapping interim workflow first."
-    },
-    {
-        "SOP_ID": "OEPT-2791",
-        "SOP_NAME": "QC Reform & Feedback Loop",
-        "SOP_UPDATE_NAME": "Standardise QC across Operations; build feedback loop so QC findings drive timely SOP updates",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2791",
-        "CONFLUENCE_URL": "",
-        "UPDATE_OWNER": "Allan Maxwell",
-        "APPROVER": "QC & Compliance Ops",
-        "UPDATE_STATUS": "Awaiting Review",
-        "PRIORITY": "Medium",
-        "TIMELINE": "Phase 1 Pilot",
-        "KEY_BLOCKER": "Depends on BigQuery setup, Arrakis portal access, and pilot-team confirmation."
-    },
-    {
-        "SOP_ID": "OEPT-2855",
-        "SOP_NAME": "Very High Country Risk Rating / HRTC jurisdictional list",
-        "SOP_UPDATE_NAME": "Release jurisdictional HTRC list so FATF grey-listed countries route to Restricted in 1LOD empowerment",
-        "JIRA_TICKET_LINK": "https://checkout.atlassian.net/browse/OEPT-2855",
-        "CONFLUENCE_URL": "https://checkout.atlassian.net/wiki/spaces/GC/pages/5684205973",
-        "UPDATE_OWNER": "Bernard Ryan",
-        "APPROVER": "Jourdan Blessyn",
-        "UPDATE_STATUS": "In progress",
-        "PRIORITY": "Medium",
-        "TIMELINE": "Ready for Comms",
-        "KEY_BLOCKER": "Updated SSOT spreadsheet shared; awaiting Jourdan review before publishing."
-    }
-]
 
 def safe_rerun():
     if hasattr(st, "rerun"):
@@ -191,36 +43,34 @@ def auto_link_text(text):
 
 def parse_sop_link(val):
     if not isinstance(val, str) or not val.strip():
-        return {"type": "none", "label": "⚠️ Unmapped SOP", "url": None}
+        return {"type": "none", "label": "⚠️ No SOP Linked", "url": None}
     match = re.search(r'https?://[^\s)]+', val)
     if not match:
-        return {"type": "none", "label": "⚠️ Unmapped SOP", "url": None}
+        return {"type": "none", "label": "⚠️ No SOP Linked", "url": None}
     url = match.group(0).rstrip('.,;:)')
     if "docs.google.com" in url:
-        return {"type": "doc", "label": "📄 Working Draft Doc ↗", "url": url}
+        return {"type": "doc", "label": "📄 Draft Doc ↗", "url": url}
     elif "atlassian.net" in url:
-        return {"type": "confluence", "label": "📘 Live Confluence SOP ↗", "url": url}
+        return {"type": "confluence", "label": "📘 SOP ↗", "url": url}
     else:
         return {"type": "link", "label": "🔗 Document ↗", "url": url}
 
 def load_data():
     if os.path.exists(CSV_FILE):
         try:
-            loaded_df = pd.read_csv(CSV_FILE)
+            loaded_df = pd.read_csv(CSV_FILE, quotechar='"', skipinitialspace=True)
             if len(loaded_df) > 0 and "SOP_ID" in loaded_df.columns:
                 return loaded_df
         except Exception:
             pass
-    fallback_df = pd.DataFrame(DEFAULT_RECORDS)
-    fallback_df.to_csv(CSV_FILE, index=False)
-    return fallback_df
+    return pd.DataFrame()
 
 if "tracker_data" not in st.session_state:
     st.session_state.tracker_data = load_data()
 
 df_all = st.session_state.tracker_data
 
-# Styling: High-end enterprise dark mode
+# Dark Mode UI styling
 st.markdown("""
 <style>
     .stApp {
@@ -228,9 +78,9 @@ st.markdown("""
         color: #F1F5F9;
     }
     .block-container {
-        padding-top: 1.8rem;
-        padding-bottom: 3rem;
-        max-width: 96%;
+        padding-top: 1.5rem;
+        padding-bottom: 3.5rem;
+        max-width: 98%;
     }
     .kicker {
         font-size: 11px;
@@ -243,81 +93,159 @@ st.markdown("""
         align-items: center;
         gap: 8px;
     }
-    .health-bar-container {
-        width: 100%;
-        background-color: #1E293B;
-        height: 6px;
-        border-radius: 4px;
-        overflow: hidden;
+    .kanban-header {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
         display: flex;
-        margin-top: 10px;
-        margin-bottom: 22px;
+        justify-content: space-between;
+        align-items: center;
     }
-    .bar-signed-off { background-color: #10B981; }
-    .bar-in-progress { background-color: #F59E0B; }
-    .bar-awaiting { background-color: #F97316; }
-    .bar-blocked { background-color: #EF4444; }
-    .bar-not-started { background-color: #64748B; }
-
-    .tracker-card {
+    .kh-blocked {
+        background-color: rgba(239, 68, 68, 0.12);
+        color: #F87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+    .kh-inprog {
+        background-color: rgba(59, 130, 246, 0.12);
+        color: #60A5FA;
+        border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .kh-backlog {
+        background-color: rgba(148, 163, 184, 0.12);
+        color: #94A3B8;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+    .kh-done {
+        background-color: rgba(16, 185, 129, 0.12);
+        color: #34D399;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .jira-board-card {
         background-color: #121622;
         border: 1px solid #232B3C;
         border-radius: 8px;
-        padding: 14px 18px;
-        margin-bottom: 12px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
         transition: border-color 0.15s ease, background-color 0.15s ease;
     }
-    .tracker-card:hover {
+    .jira-board-card:hover {
         border-color: #3B82F6;
         background-color: #161C2C;
     }
-    .jira-pill {
+    .jira-key-badge {
         font-family: monospace;
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 700;
-        padding: 4px 9px;
-        border-radius: 5px;
+        padding: 2px 7px;
+        border-radius: 4px;
         background: #1E293B;
         color: #60A5FA !important;
         text-decoration: none;
         border: 1px solid #334155;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
     }
-    .jira-pill:hover {
+    .jira-key-badge:hover {
         background: #2563EB;
         color: #FFFFFF !important;
     }
-    .sop-pill {
+    .domain-tag {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: #94A3B8;
+        background: #1A202E;
+        padding: 2px 7px;
+        border-radius: 4px;
+        border: 1px solid #252D3F;
+    }
+    .card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #F8FAFC;
+        margin-top: 6px;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+    .card-summary {
+        font-size: 12px;
+        color: #94A3B8;
+        line-height: 1.35;
+        margin-bottom: 8px;
+    }
+    .blocker-box {
+        font-size: 11.5px;
+        line-height: 1.35;
+        padding: 7px 9px;
+        border-radius: 5px;
+        margin-bottom: 8px;
+    }
+    .bb-blocked {
+        background-color: rgba(239, 68, 68, 0.08);
+        border-left: 3px solid #EF4444;
+        color: #FCA5A5;
+    }
+    .bb-inprog {
+        background-color: rgba(59, 130, 246, 0.08);
+        border-left: 3px solid #3B82F6;
+        color: #93C5FD;
+    }
+    .bb-backlog {
+        background-color: rgba(148, 163, 184, 0.08);
+        border-left: 3px solid #64748B;
+        color: #CBD5E1;
+    }
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        color: #64748B;
+        margin-bottom: 6px;
+    }
+    .card-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .btn-action-jira {
         font-size: 11px;
         font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 5px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        background: #1E293B;
+        color: #93C5FD !important;
         text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
+        border: 1px solid #334155;
     }
-    .sop-pill-confluence {
+    .btn-action-sop {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
         background: #0E2938;
         color: #38BDF8 !important;
+        text-decoration: none;
         border: 1px solid #0284C7;
     }
-    .sop-pill-confluence:hover {
-        background: #0284C7;
-        color: #FFFFFF !important;
-    }
-    .sop-pill-doc {
+    .btn-action-doc {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
         background: #0D2E22;
         color: #34D399 !important;
+        text-decoration: none;
         border: 1px solid #059669;
     }
-    .sop-pill-doc:hover {
-        background: #059669;
-        color: #FFFFFF !important;
-    }
-    .sop-pill-unmapped {
+    .btn-action-unmapped {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
         background: #2D2013;
         color: #FBBF24;
         border: 1px dashed #D97706;
@@ -325,410 +253,253 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER SECTION ---
+# Top Header
 st.markdown("""
 <div class="kicker">
-    <span>COMPLIANCE OPS</span> &nbsp;·&nbsp; <span>INTERIM SINGLE SOURCE</span> &nbsp;·&nbsp; <span style="color: #60A5FA;">PROCESS ARCHITECTURE</span>
+    <span>COMPLIANCE OPS</span> &nbsp;·&nbsp; <span>JIRA SOP GOVERNANCE</span> &nbsp;·&nbsp; <span style="color: #60A5FA;">PROCESS ARCHITECTURE</span>
 </div>
-<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; flex-wrap: wrap; gap: 14px;">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 14px;">
     <div>
-        <h1 style="font-size: 34px; font-weight: 700; color: #FFFFFF; margin: 0; line-height: 1.15;">SOP Update Tracker</h1>
-        <div style="font-size: 13px; color: #94A3B8; margin-top: 4px;">
-            Governance Lead: <strong style="color: #F8FAFC;">Bernard Ryan</strong> &nbsp;·&nbsp; 
+        <h1 style="font-size: 32px; font-weight: 700; color: #FFFFFF; margin: 0; line-height: 1.15;">Compliance SOP Governance Board</h1>
+        <div style="font-size: 12.5px; color: #94A3B8; margin-top: 4px;">
+            Domain Lead: <strong style="color: #F8FAFC;">Bernard Ryan</strong> &nbsp;·&nbsp; 
             Process Architect: <strong style="color: #F8FAFC;">Allan Maxwell</strong> &nbsp;·&nbsp; 
-            Executive Oversight: <strong style="color: #F8FAFC;">Sunil Mudaliar</strong>
+            Senior Lead: <strong style="color: #F8FAFC;">Sunil Mudaliar</strong>
         </div>
     </div>
-    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <div style="background-color: #172238; border: 1px solid #1E3A8A; color: #60A5FA; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 20px; display: flex; align-items: center; gap: 6px;">
-            <span style="height: 7px; width: 7px; background-color: #3B82F6; border-radius: 50%; display: inline-block;"></span>
-            Owner Edit Mode · Live Sync
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="background-color: #172238; border: 1px solid #1E3A8A; color: #60A5FA; font-size: 11.5px; font-weight: 600; padding: 5px 12px; border-radius: 20px;">
+            ● Live Interactive Mode
         </div>
-        <a href="https://checkout.atlassian.net" target="_blank" style="color: #94A3B8; font-size: 12px; font-weight: 500; text-decoration: none; padding: 5px 10px; border: 1px solid #232B3C; border-radius: 6px; background: #131722;">
-            Atlassian Sources ↗
+        <a href="https://checkout.atlassian.net" target="_blank" style="color: #94A3B8; font-size: 12px; text-decoration: none; padding: 5px 10px; border: 1px solid #232B3C; border-radius: 6px; background: #131722;">
+            Open Jira Workspace ↗
         </a>
     </div>
 </div>
-<p style="color: #94A3B8; font-size: 13.5px; margin-bottom: 4px; max-width: 860px; line-height: 1.45;">
-    Centralized governance hub tracking all requested procedure amendments in flight. Anyone can triage status and view dependencies. Filter, inspect blockers, or update delivery statuses directly in-line.
-</p>
-<div style="font-size: 11.5px; color: #64748B; margin-bottom: 12px;">
-    Sources verified October 2026 ⓘ &nbsp;·&nbsp; Process Architecture Registry V2.4
-</div>
 """, unsafe_allow_html=True)
 
-# Metrics calculation
-total_cnt = len(df_all)
-signed_off_cnt = len(df_all[df_all["UPDATE_STATUS"] == "Signed Off"])
-in_progress_cnt = len(df_all[df_all["UPDATE_STATUS"] == "In progress"])
-awaiting_cnt = len(df_all[df_all["UPDATE_STATUS"] == "Awaiting Review"])
-under_review_cnt = len(df_all[df_all["UPDATE_STATUS"] == "Under Review"])
-blocked_cnt = len(df_all[df_all["UPDATE_STATUS"] == "Blocked"])
-not_started_cnt = len(df_all[df_all["UPDATE_STATUS"] == "Not Started"])
+# --- FILTER TOOLBAR ---
+f_col1, f_col2, f_col3, f_col4, f_col5, f_col6 = st.columns([3, 2, 2, 2, 1, 1.2])
 
-# Visual Health Progress Bar
-if total_cnt > 0:
-    pct_signed = (signed_off_cnt / total_cnt) * 100
-    pct_inprog = (in_progress_cnt / total_cnt) * 100
-    pct_awaiting = (awaiting_cnt / total_cnt) * 100
-    pct_blocked = (blocked_cnt / total_cnt) * 100
-    pct_notstart = (not_started_cnt / total_cnt) * 100
-    st.markdown(f"""
-    <div class="health-bar-container" title="Delivery Progress">
-        <div class="bar-signed-off" style="width: {pct_signed}%;"></div>
-        <div class="bar-in-progress" style="width: {pct_inprog}%;"></div>
-        <div class="bar-awaiting" style="width: {pct_awaiting}%;"></div>
-        <div class="bar-blocked" style="width: {pct_blocked}%;"></div>
-        <div class="bar-not-started" style="width: {pct_notstart}%;"></div>
-    </div>
-    """, unsafe_allow_html=True)
+with f_col1:
+    search_term = st.text_input("Search", placeholder="Search tickets, SOPs, keywords, blockers...", label_visibility="collapsed").strip().lower()
 
-# --- INTERACTIVE METRIC PULSE (Clickable Filters) ---
-status_tabs = st.radio(
-    "Filter by Status",
-    options=[
-        f"ALL UPDATES ({total_cnt})",
-        f"⚪ NOT STARTED ({not_started_cnt})",
-        f"🟡 IN PROGRESS ({in_progress_cnt})",
-        f"🟠 AWAITING REVIEW ({awaiting_cnt})",
-        f"🟢 SIGNED OFF ({signed_off_cnt})",
-        f"🔴 BLOCKED ({blocked_cnt})"
-    ],
-    horizontal=True,
-    label_visibility="collapsed"
-)
+with f_col2:
+    all_domains = ["Domain: All"] + sorted(list(df_all["DOMAIN"].dropna().unique()))
+    sel_domain = st.selectbox("Domain", options=all_domains, label_visibility="collapsed")
 
-# --- TOOLBAR: SEARCH & FILTERS ---
-t_c1, t_c2, t_c3, t_c4, t_c5 = st.columns([4, 2, 2, 2, 2])
+with f_col3:
+    all_stakeholders = ["Stakeholder: All"] + sorted(list(df_all["APPROVER"].dropna().unique()))
+    sel_stakeholder = st.selectbox("Stakeholder", options=all_stakeholders, label_visibility="collapsed")
 
-with t_c1:
-    search_q = st.text_input("Search", placeholder="Search SOP name, update summary, Jira key, owner...", label_visibility="collapsed").strip().lower()
-
-with t_c2:
-    all_owners = ["Owner: any"] + sorted(list(df_all["UPDATE_OWNER"].dropna().unique()))
+with f_col4:
+    all_owners = ["Owner: All"] + sorted(list(df_all["UPDATE_OWNER"].dropna().unique()))
     sel_owner = st.selectbox("Owner", options=all_owners, label_visibility="collapsed")
 
-with t_c3:
-    all_approvers = ["Approver: any"] + sorted(list(df_all["APPROVER"].dropna().unique()))
-    sel_approver = st.selectbox("Approver", options=all_approvers, label_visibility="collapsed")
-
-with t_c4:
-    if st.button("Reset Filters", use_container_width=True):
+with f_col5:
+    if st.button("Reset", use_container_width=True):
         safe_rerun()
 
-with t_c5:
-    open_add_modal = st.button("+ Add SOP update", type="primary", use_container_width=True)
+with f_col6:
+    open_add = st.button("+ Add Ticket", type="primary", use_container_width=True)
 
-# Modal Form for adding new updates
-if open_add_modal:
-    with st.expander("➕ Log New Stakeholder SOP Update", expanded=True):
-        with st.form("new_sop_form", clear_on_submit=True):
-            f1, f2 = st.columns(2)
-            with f1:
-                form_sop = st.text_input("SOP Title / Document Target", placeholder="e.g. Sanctions Transaction Screening SOP")
-                form_update = st.text_input("Requested Change Summary", placeholder="e.g. Add mandatory RBA justification for Tier 2 RFIs")
-                form_jira = st.text_input("Jira Ticket Key or URL", placeholder="e.g. OEPT-3012")
-                form_confluence = st.text_input("Confluence URL (optional)", placeholder="https://checkout.atlassian.net/wiki/...")
-            with f2:
-                form_owner = st.selectbox("Update Owner", ["Allan Maxwell", "Bernard Ryan", "Neema Nev", "Sunil Mudaliar"])
-                form_approver = st.text_input("Approver / Stakeholder", placeholder="e.g. Pooja Lutchmun (QC) / Kevin Gopaul")
-                form_status = st.selectbox("Initial Status", ["Not Started", "In progress", "Awaiting Review", "Under Review", "Signed Off", "Blocked"], index=1)
-                form_timeline = st.text_input("Target Date / Blocker Note", placeholder="e.g. Target: 15-November-2026")
+if open_add:
+    with st.expander("➕ Log New Jira Ticket to Board", expanded=True):
+        with st.form("new_ticket_modal", clear_on_submit=True):
+            m1, m2 = st.columns(2)
+            with m1:
+                t_id = st.text_input("Jira Ticket Key", placeholder="e.g. OEPT-3100")
+                t_name = st.text_input("Procedure / SOP Name", placeholder="e.g. Sanctions RFI Procedure")
+                t_domain = st.selectbox("Domain", ["Sanctions & Screening", "AML & KYC", "Governance & Policy", "Merchant Onboarding", "Quality Control & Audit"])
+                t_owner = st.selectbox("Compliance Owner", ["Allan Maxwell", "Bernard Ryan", "Neema Nev", "Sunil Mudaliar"])
+            with m2:
+                t_summary = st.text_input("Requested Change / Summary", placeholder="Brief description of the change request")
+                t_stakeholder = st.text_input("Requesting Stakeholder", placeholder="e.g. Pooja Lutchmun (QC)")
+                t_status = st.selectbox("Initial Status", ["Blocked", "In progress", "Awaiting Review", "Backlog", "Signed Off"], index=1)
+                t_sop_link = st.text_input("Confluence / Doc Link (optional)", placeholder="https://checkout.atlassian.net/wiki/...")
+            t_blocker = st.text_input("Blocker or Next Step Note", placeholder="e.g. Awaiting reporter signoff")
             
-            if st.form_submit_button("Save & Append to Register", type="primary"):
-                clean_jira_link = form_jira if form_jira.startswith("http") else f"https://checkout.atlassian.net/browse/{form_jira.strip().upper()}"
-                new_entry = pd.DataFrame([{
-                    "SOP_ID": form_jira.strip().upper().replace("HTTPS://CHECKOUT.ATLASSIAN.NET/BROWSE/", ""),
-                    "SOP_NAME": form_sop,
-                    "SOP_UPDATE_NAME": form_update,
-                    "JIRA_TICKET_LINK": clean_jira_link,
-                    "CONFLUENCE_URL": form_confluence,
-                    "UPDATE_OWNER": form_owner,
-                    "APPROVER": form_approver,
-                    "UPDATE_STATUS": form_status,
+            if st.form_submit_button("Add to Board", type="primary"):
+                clean_jira = t_id if t_id.startswith("http") else f"https://checkout.atlassian.net/browse/{t_id.strip().upper()}"
+                new_row = pd.DataFrame([{
+                    "SOP_ID": t_id.strip().upper().replace("HTTPS://CHECKOUT.ATLASSIAN.NET/BROWSE/", ""),
+                    "SOP_NAME": t_name,
+                    "DOMAIN": t_domain,
+                    "SOP_UPDATE_NAME": t_summary,
+                    "JIRA_TICKET_LINK": clean_jira,
+                    "CONFLUENCE_URL": t_sop_link,
+                    "UPDATE_OWNER": t_owner,
+                    "APPROVER": t_stakeholder,
+                    "UPDATE_STATUS": t_status,
                     "PRIORITY": "Medium",
-                    "TIMELINE": form_timeline,
-                    "KEY_BLOCKER": form_timeline
+                    "TIMELINE": t_blocker
                 }])
-                updated_master = pd.concat([st.session_state.tracker_data, new_entry], ignore_index=True)
-                st.session_state.tracker_data = updated_master
-                updated_master.to_csv(CSV_FILE, index=False)
-                st.success("✅ New SOP update added to the register!")
+                st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
+                st.session_state.tracker_data.to_csv(CSV_FILE, index=False)
+                if hasattr(st, "toast"):
+                    st.toast("Added ticket to board!", icon="✅")
                 safe_rerun()
 
 # Apply Filters
-filtered_df = df_all.copy()
+filtered = df_all.copy()
 
-if "BLOCKED" in status_tabs:
-    filtered_df = filtered_df[filtered_df["UPDATE_STATUS"] == "Blocked"]
-elif "IN PROGRESS" in status_tabs:
-    filtered_df = filtered_df[filtered_df["UPDATE_STATUS"] == "In progress"]
-elif "AWAITING" in status_tabs:
-    filtered_df = filtered_df[filtered_df["UPDATE_STATUS"] == "Awaiting Review"]
-elif "SIGNED OFF" in status_tabs:
-    filtered_df = filtered_df[filtered_df["UPDATE_STATUS"] == "Signed Off"]
-elif "NOT STARTED" in status_tabs:
-    filtered_df = filtered_df[filtered_df["UPDATE_STATUS"] == "Not Started"]
+if sel_domain != "Domain: All":
+    filtered = filtered[filtered["DOMAIN"] == sel_domain]
 
-if sel_owner != "Owner: any":
-    filtered_df = filtered_df[filtered_df["UPDATE_OWNER"] == sel_owner]
+if sel_stakeholder != "Stakeholder: All":
+    filtered = filtered[filtered["APPROVER"] == sel_stakeholder]
 
-if sel_approver != "Approver: any":
-    filtered_df = filtered_df[filtered_df["APPROVER"] == sel_approver]
+if sel_owner != "Owner: All":
+    filtered = filtered[filtered["UPDATE_OWNER"] == sel_owner]
 
-if search_q:
-    filtered_df = filtered_df[
-        filtered_df["SOP_NAME"].str.lower().str.contains(search_q, na=False) |
-        filtered_df["SOP_UPDATE_NAME"].str.lower().str.contains(search_q, na=False) |
-        filtered_df["UPDATE_OWNER"].str.lower().str.contains(search_q, na=False) |
-        filtered_df["APPROVER"].str.lower().str.contains(search_q, na=False) |
-        filtered_df["TIMELINE"].str.lower().str.contains(search_q, na=False) |
-        filtered_df["SOP_ID"].str.lower().str.contains(search_q, na=False)
+if search_term:
+    filtered = filtered[
+        filtered["SOP_NAME"].str.lower().str.contains(search_term, na=False) |
+        filtered["SOP_UPDATE_NAME"].str.lower().str.contains(search_term, na=False) |
+        filtered["UPDATE_OWNER"].str.lower().str.contains(search_term, na=False) |
+        filtered["APPROVER"].str.lower().str.contains(search_term, na=False) |
+        filtered["TIMELINE"].str.lower().str.contains(search_term, na=False) |
+        filtered["SOP_ID"].str.lower().str.contains(search_term, na=False)
     ]
 
-st.write("")
+st.caption(f"Showing **{len(filtered)}** of {len(df_all)} open Jira change requests")
 
-# --- VIEW TABS ---
-view_tab1, view_tab2, view_tab3 = st.tabs([
-    f"⚡ Interactive Action Board ({len(filtered_df)})",
-    "📊 Quick Data Grid (Bulk Editor)",
-    "📈 Executive Delivery Analytics"
-])
+# --- KANBAN BOARD COLUMNS ---
+c_blocked, c_inprog, c_backlog, c_done = st.columns(4)
 
-# ==========================================
-# VIEW 1: ENHANCED INTERACTIVE ACTION BOARD
-# ==========================================
-with view_tab1:
-    st.caption(f"Showing **{len(filtered_df)}** of {total_cnt} SOP updates · Click any row to inspect dependencies or launch docs")
+blocked_df = filtered[filtered["UPDATE_STATUS"] == "Blocked"]
+inprog_df = filtered[filtered["UPDATE_STATUS"].isin(["In progress", "Awaiting Review", "Under Review"])]
+backlog_df = filtered[filtered["UPDATE_STATUS"].isin(["Not Started", "Backlog"])]
+done_df = filtered[filtered["UPDATE_STATUS"] == "Signed Off"]
+
+def render_board_card(row, idx, col_type):
+    ticket_id = str(row.get("SOP_ID", ""))
+    sop_name = str(row.get("SOP_NAME", ""))
+    jira_url = str(row.get("JIRA_TICKET_LINK", f"https://checkout.atlassian.net/browse/{ticket_id}"))
+    confluence_url = str(row.get("CONFLUENCE_URL", ""))
+    sop_link_info = parse_sop_link(confluence_url)
+    priority = str(row.get("PRIORITY", "Medium"))
+    domain = str(row.get("DOMAIN", "Compliance"))
+    owner = str(row.get("UPDATE_OWNER", ""))
+    approver = str(row.get("APPROVER", ""))
     
-    if len(filtered_df) == 0:
-        st.info("No SOP updates match the selected filters. Click 'Reset Filters' above to view all records.")
+    formatted_summary = auto_link_text(str(row.get("SOP_UPDATE_NAME", "")))
+    formatted_blocker = auto_link_text(str(row.get("TIMELINE", "")))
+    
+    if col_type == "blocked":
+        border_style = "border-top: 3px solid #EF4444;"
+        blocker_class = "bb-blocked"
+        callout_label = "⚠️ Blocker"
+    elif col_type == "inprog":
+        border_style = "border-top: 3px solid #3B82F6;"
+        blocker_class = "bb-inprog"
+        callout_label = "ℹ️ Next Step"
+    elif col_type == "backlog":
+        border_style = "border-top: 3px solid #64748B;"
+        blocker_class = "bb-backlog"
+        callout_label = "📌 Queue Note"
     else:
-        for idx, row in filtered_df.iterrows():
-            sop_link_info = parse_sop_link(str(row.get("CONFLUENCE_URL", "")))
-            ticket_id = str(row.get("SOP_ID", "TICKET"))
-            jira_url = str(row.get("JIRA_TICKET_LINK", f"https://checkout.atlassian.net/browse/{ticket_id}"))
-            current_status = str(row.get("UPDATE_STATUS", "In progress"))
-            
-            # Status styling
-            if current_status == "Blocked":
-                border_style = "border-left: 4px solid #EF4444;"
-                badge_bg = "rgba(239, 68, 68, 0.15)"
-                badge_txt = "#FCA5A5"
-                dot = "🔴"
-            elif current_status == "In progress":
-                border_style = "border-left: 4px solid #F59E0B;"
-                badge_bg = "rgba(245, 158, 11, 0.15)"
-                badge_txt = "#FCD34D"
-                dot = "🟡"
-            elif current_status == "Signed Off":
-                border_style = "border-left: 4px solid #10B981;"
-                badge_bg = "rgba(16, 185, 129, 0.15)"
-                badge_txt = "#6EE7B7"
-                dot = "🟢"
-            elif current_status in ["Awaiting Review", "Under Review"]:
-                border_style = "border-left: 4px solid #F97316;"
-                badge_bg = "rgba(249, 115, 22, 0.15)"
-                badge_txt = "#FDBA74"
-                dot = "🟠"
-            else:
-                border_style = "border-left: 4px solid #64748B;"
-                badge_bg = "rgba(100, 116, 139, 0.15)"
-                badge_txt = "#CBD5E1"
-                dot = "⚪"
+        border_style = "border-top: 3px solid #10B981;"
+        blocker_class = "bb-inprog"
+        callout_label = "✅ Status"
 
-            if sop_link_info["type"] == "confluence":
-                sop_btn_html = f'<a href="{sop_link_info["url"]}" target="_blank" class="sop-pill sop-pill-confluence">{sop_link_info["label"]}</a>'
-            elif sop_link_info["type"] == "doc":
-                sop_btn_html = f'<a href="{sop_link_info["url"]}" target="_blank" class="sop-pill sop-pill-doc">{sop_link_info["label"]}</a>'
-            else:
-                sop_btn_html = f'<span class="sop-pill sop-pill-unmapped">{sop_link_info["label"]}</span>'
+    if sop_link_info["type"] == "confluence":
+        sop_badge = f'<a href="{sop_link_info["url"]}" target="_blank" class="btn-action-sop">📘 SOP ↗</a>'
+    elif sop_link_info["type"] == "doc":
+        sop_badge = f'<a href="{sop_link_info["url"]}" target="_blank" class="btn-action-doc">📄 Doc ↗</a>'
+    else:
+        sop_badge = f'<span class="btn-action-unmapped">⚠️ No SOP Linked</span>'
 
-            jira_btn_html = f'<a href="{jira_url}" target="_blank" class="jira-pill">🎫 {ticket_id} ↗</a>'
-            
-            blocker_text = str(row.get("KEY_BLOCKER", row.get("TIMELINE", "")))
-            formatted_blocker = auto_link_text(blocker_text)
-            formatted_summary = auto_link_text(str(row.get("SOP_UPDATE_NAME", "")))
-
-            card_html = f"""
-            <div class="tracker-card" style="{border_style}">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        {jira_btn_html}
-                        <span style="font-size: 15px; font-weight: 700; color: #F8FAFC;">{row['SOP_NAME']}</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        {sop_btn_html}
-                        <span style="background-color: {badge_bg}; color: {badge_txt}; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;">
-                            {dot} {current_status}
-                        </span>
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 16px; background-color: #0E121B; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; margin-top: 6px;">
-                    <div>
-                        <div style="color: #94A3B8; margin-bottom: 4px;">
-                            <strong style="color: #E2E8F0;">Update Scope:</strong> {formatted_summary}
-                        </div>
-                        <div style="color: #64748B; font-size: 12px;">
-                            <strong>Owner:</strong> <span style="color: #CBD5E1;">{row['UPDATE_OWNER']}</span> &nbsp;·&nbsp; 
-                            <strong>Approver:</strong> <span style="color: #CBD5E1;">{row['APPROVER']}</span>
-                        </div>
-                    </div>
-                    <div>
-                        <div style="color: #94A3B8; margin-bottom: 4px;">
-                            <strong style="color: #E2E8F0;">Timeline & Dependency:</strong>
-                        </div>
-                        <div style="color: #E2E8F0; font-size: 12px; line-height: 1.4;">
-                            {formatted_blocker}
-                        </div>
-                    </div>
-                </div>
+    card_html = f"""
+    <div class="jira-board-card" style="{border_style}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <a href="{jira_url}" target="_blank" class="jira-key-badge">{ticket_id} ↗</a>
+                <span class="domain-tag">{domain}</span>
             </div>
-            """
-            st.markdown(card_html, unsafe_allow_html=True)
-            
-            c_status, c_msg, _ = st.columns([2, 3, 5])
-            with c_status:
-                status_choices = ["In progress", "Signed Off", "Blocked", "Awaiting Review", "Under Review", "Not Started"]
-                current_idx = status_choices.index(current_status) if current_status in status_choices else 0
-                new_status = st.selectbox(
-                    f"Quick Status for {ticket_id}",
-                    options=status_choices,
-                    index=current_idx,
-                    key=f"status_select_{idx}",
-                    label_visibility="collapsed"
-                )
-                if new_status != current_status:
-                    st.session_state.tracker_data.at[idx, "UPDATE_STATUS"] = new_status
-                    st.session_state.tracker_data.to_csv(CSV_FILE, index=False)
-                    st.toast(f"Updated {ticket_id} status to {new_status}!", icon="✅")
-                    safe_rerun()
-            with c_msg:
-                st.caption(f"💡 Target: `{row.get('TIMELINE', 'In flight')}`")
-
-# ==========================================
-# VIEW 2: QUICK DATA GRID (BULK EDITOR)
-# ==========================================
-with view_tab2:
-    st.markdown("#### 📊 Spreadsheet Bulk Editor")
-    st.caption("Double-click any cell to edit details inline, copy-paste URLs, or update deadlines.")
+            <span style="font-size: 11px; font-weight: 600; color: #94A3B8;">{priority}</span>
+        </div>
+        <div class="card-title">{sop_name}</div>
+        <div class="card-summary">{formatted_summary}</div>
+        <div class="blocker-box {blocker_class}">
+            <strong>{callout_label}:</strong> {formatted_blocker}
+        </div>
+        <div class="card-footer">
+            <span>👤 <strong style="color: #CBD5E1;">{owner}</strong></span>
+            <span>From: <strong style="color: #CBD5E1;">{approver}</strong></span>
+        </div>
+        <div class="card-actions">
+            <a href="{jira_url}" target="_blank" class="btn-action-jira">🎫 Jira ↗</a>
+            {sop_badge}
+        </div>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
     
-    table_editor = st.data_editor(
-        filtered_df,
-        column_config={
-            "SOP_ID": st.column_config.TextColumn("ID", width="small", disabled=True),
-            "SOP_NAME": st.column_config.TextColumn("SOP Name", width="medium"),
-            "SOP_UPDATE_NAME": st.column_config.TextColumn("Update Details", width="large"),
-            "JIRA_TICKET_LINK": st.column_config.LinkColumn("Jira Ticket Link"),
-            "CONFLUENCE_URL": st.column_config.LinkColumn("Confluence / Doc Link"),
-            "UPDATE_OWNER": st.column_config.SelectboxColumn("Owner", options=["Allan Maxwell", "Bernard Ryan", "Neema Nev", "Sunil Mudaliar"]),
-            "APPROVER": st.column_config.TextColumn("Approver"),
-            "UPDATE_STATUS": st.column_config.SelectboxColumn("Status", options=["Not Started", "In progress", "Awaiting Review", "Under Review", "Signed Off", "Blocked"]),
-            "TIMELINE": st.column_config.TextColumn("Timeline"),
-            "KEY_BLOCKER": st.column_config.TextColumn("Blocker Dependency", width="large")
-        },
-        num_rows="dynamic",
-        use_container_width=True,
-        hide_index=True,
-        key="bulk_data_editor"
-    )
-    
-    col_save, col_dl, _ = st.columns([2, 2, 6])
-    with col_save:
-        if st.button("💾 Save Grid Changes", type="primary", use_container_width=True):
-            st.session_state.tracker_data.update(table_editor)
+    with st.expander(f"⚙️ Edit SOP / Status ({ticket_id})", expanded=False):
+        new_confluence = st.text_input(
+            "Impacted Confluence / SOP URL",
+            value=confluence_url if pd.notna(confluence_url) else "",
+            key=f"conf_input_{idx}",
+            placeholder="https://checkout.atlassian.net/wiki/spaces/..."
+        )
+        status_opts = ["Blocked", "In progress", "Awaiting Review", "Backlog", "Signed Off"]
+        curr_status = row.get("UPDATE_STATUS", "In progress")
+        s_idx = status_opts.index(curr_status) if curr_status in status_opts else 1
+        new_status = st.selectbox(
+            "Move Status",
+            options=status_opts,
+            index=s_idx,
+            key=f"status_move_{idx}"
+        )
+        if st.button("Save Updates", key=f"save_btn_{idx}", type="primary", use_container_width=True):
+            st.session_state.tracker_data.at[idx, "CONFLUENCE_URL"] = new_confluence.strip()
+            st.session_state.tracker_data.at[idx, "UPDATE_STATUS"] = new_status
             st.session_state.tracker_data.to_csv(CSV_FILE, index=False)
-            st.success("✅ Changes successfully saved and published!")
+            if hasattr(st, "toast"):
+                st.toast(f"Saved changes for {ticket_id}!", icon="✅")
             safe_rerun()
-            
-    with col_dl:
-        st.download_button(
-            label="📥 Export Tracker CSV",
-            data=st.session_state.tracker_data.to_csv(index=False).encode('utf-8'),
-            file_name=f"compliance_sop_tracker_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
 
-# ==========================================
-# VIEW 3: EXECUTIVE DELIVERY ANALYTICS
-# ==========================================
-with view_tab3:
-    st.markdown("#### 📈 Compliance Governance & Bottleneck Intelligence")
-    st.caption("Executive overview for Sunil Mudaliar and domain leads to identify dependencies holding up SOP releases.")
-    
-    ch_col1, ch_col2 = st.columns(2)
-    
-    with ch_col1:
-        st.markdown("##### Status Breakdown")
-        st_data = df_all["UPDATE_STATUS"].value_counts().reset_index()
-        st_data.columns = ["Status", "Count"]
-        fig_pie = px.pie(
-            st_data,
-            names="Status",
-            values="Count",
-            hole=0.6,
-            color="Status",
-            color_discrete_map={
-                "Signed Off": "#10B981",
-                "In progress": "#F59E0B",
-                "Awaiting Review": "#F97316",
-                "Under Review": "#3B82F6",
-                "Blocked": "#EF4444",
-                "Not Started": "#64748B"
-            }
-        )
-        fig_pie.update_layout(
-            margin=dict(t=20, b=20, l=20, r=20),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            font_color="#E2E8F0",
-            height=280
-        )
-        st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
+with c_blocked:
+    st.markdown(f'<div class="kanban-header kh-blocked"><span>🔴 Blocked / On Hold</span><span>{len(blocked_df)}</span></div>', unsafe_allow_html=True)
+    if len(blocked_df) == 0:
+        st.caption("No blocked tickets in this filter.")
+    else:
+        for idx, row in blocked_df.iterrows():
+            render_board_card(row, idx, "blocked")
 
-    with ch_col2:
-        st.markdown("##### Workload by Compliance Owner")
-        owner_data = df_all["UPDATE_OWNER"].value_counts().reset_index()
-        owner_data.columns = ["Owner", "Count"]
-        fig_owner = px.bar(
-            owner_data,
-            x="Owner",
-            y="Count",
-            text="Count",
-            color="Owner",
-            color_discrete_sequence=["#2563EB", "#0284C7"]
-        )
-        fig_owner.update_layout(
-            margin=dict(t=20, b=20, l=20, r=20),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            font_color="#E2E8F0",
-            height=280,
-            showlegend=False,
-            xaxis_title="",
-            yaxis=dict(dtick=1, tick0=0, tickformat="d", title="Procedures")
-        )
-        st.plotly_chart(fig_owner, use_container_width=True, config={"displayModeBar": False})
-        
-    st.markdown("##### Requests by Approver / Stakeholder")
-    approver_data = df_all["APPROVER"].value_counts().reset_index()
-    approver_data.columns = ["Approver", "Count"]
-    fig_app = px.bar(
-        approver_data,
-        x="Count",
-        y="Approver",
-        orientation="h",
-        text="Count",
-        color_discrete_sequence=["#3B82F6"]
+with c_inprog:
+    st.markdown(f'<div class="kanban-header kh-inprog"><span>🔵 In Progress & Review</span><span>{len(inprog_df)}</span></div>', unsafe_allow_html=True)
+    if len(inprog_df) == 0:
+        st.caption("No in-progress tickets in this filter.")
+    else:
+        for idx, row in inprog_df.iterrows():
+            render_board_card(row, idx, "inprog")
+
+with c_backlog:
+    st.markdown(f'<div class="kanban-header kh-backlog"><span>⚪ Backlog / Queued</span><span>{len(backlog_df)}</span></div>', unsafe_allow_html=True)
+    if len(backlog_df) == 0:
+        st.caption("No backlog tickets in this filter.")
+    else:
+        for idx, row in backlog_df.iterrows():
+            render_board_card(row, idx, "backlog")
+
+with c_done:
+    st.markdown(f'<div class="kanban-header kh-done"><span>🟢 Signed Off</span><span>{len(done_df)}</span></div>', unsafe_allow_html=True)
+    if len(done_df) == 0:
+        st.caption("No signed off tickets in this filter.")
+    else:
+        for idx, row in done_df.iterrows():
+            render_board_card(row, idx, "done")
+
+st.divider()
+
+col_export, _ = st.columns([2, 8])
+with col_export:
+    st.download_button(
+        label="📥 Export Master Roster to CSV",
+        data=st.session_state.tracker_data.to_csv(index=False).encode('utf-8'),
+        file_name=f"compliance_sop_tracker_{datetime.now().strftime('%Y%m%d')}.csv",
+        mime="text/csv",
+        use_container_width=True
     )
-    fig_app.update_layout(
-        margin=dict(t=10, b=10, l=10, r=20),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font_color="#E2E8F0",
-        height=300,
-        yaxis=dict(autorange="reversed", title=""),
-        xaxis=dict(dtick=1, tick0=0, tickformat="d", title="Change Requests")
-    )
-    st.plotly_chart(fig_app, use_container_width=True, config={"displayModeBar": False})
